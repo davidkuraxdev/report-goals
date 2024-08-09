@@ -1,6 +1,17 @@
 import MaterialTable from '@material-table/core';
-import { Paper } from '@mui/material';
+import {
+	Button,
+	Dialog,
+	DialogActions,
+	DialogContent,
+	DialogTitle,
+	Paper,
+	Stack,
+	Typography,
+} from '@mui/material';
 import React, { useEffect, useState } from 'react';
+
+import * as XLSX from 'xlsx';
 
 interface RowData {
 	title: string;
@@ -37,6 +48,8 @@ export interface Rating {
 
 const TableCustome: React.FC = () => {
 	const [data, setData] = useState<RowData[]>([]);
+	const [jsonData, setJsonData] = useState<unknown[]>([]);
+	const [open, setOpen] = useState(false);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -60,8 +73,61 @@ const TableCustome: React.FC = () => {
 		fetchData();
 	}, []);
 
+	const handleLoadFileCVS = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				const binaryStr = e.target?.result;
+				const workbook = XLSX.read(binaryStr, { type: 'binary' });
+				const sheetName = workbook.SheetNames[0];
+				const sheet = workbook.Sheets[sheetName];
+				const jsonData = XLSX.utils.sheet_to_json(sheet, {
+					defval: '',
+				});
+
+				setJsonData(jsonData);
+				setOpen(true);
+			};
+			reader.readAsBinaryString(file);
+		}
+	};
+
+	const handleClose = () => {
+		setOpen(false);
+	};
 	return (
 		<Paper>
+			<Stack>
+				<Typography>Objetivos diarios Promotor</Typography>
+				<input
+					type="file"
+					accept=".xlsx, .xls"
+					onChange={handleLoadFileCVS}
+					style={{ display: 'none' }}
+					id="upload-file"
+				/>
+				<Button>Descargar Archivo</Button>
+
+				<label htmlFor="upload-file">
+					<Button variant="outlined" size="small" component="span">
+						Subir Archivo
+					</Button>
+				</label>
+			</Stack>
+			<Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+				<DialogTitle>Datos JSON</DialogTitle>
+				<DialogContent dividers>
+					<Typography variant="body2" component="pre">
+						{JSON.stringify(jsonData, null, 2)}
+					</Typography>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={handleClose} color="primary">
+						Cerrar
+					</Button>
+				</DialogActions>
+			</Dialog>
 			<MaterialTable
 				title="Productos"
 				columns={[
